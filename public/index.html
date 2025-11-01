@@ -11,43 +11,20 @@
       display: grid; 
       place-items: center; 
       min-height: 90vh; 
-      background-color: #f4f4f4; 
-      /* Add a smooth transition: */
-      transition: background-color 0.3s, color 0.3s;
+      background: linear-gradient(-45deg, #414345, #5f092d, #2c2c2b, #2b292b);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite; 
+      color: #ffffff; /* Added a default text color for the dark background */
     }
     .chart-container { width: 600px; }
 
-    /* Dark Mode styles */
-    body.dark-mode {
-      background-color: #222;
-      color: #eee;
-    }
-    
-    #darkModeToggle {
-      /* A little styling for the button */
-      padding: 8px 12px;
-      border: 1px solid #888;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    body.dark-mode #darkModeToggle {
-      /* Button styling for dark mode */
-      background-color: #333;
-      color: #eee;
-      border-color: #555;
-    }
-    
     /* CSS FOR THE FORM */
     #addCostForm {
       margin-top: 20px;
       padding: 15px;
-      border: 1px solid #ccc;
+      border: 1px solid #000000;
       border-radius: 8px;
-    }
-    
-    body.dark-mode #addCostForm {
-      border-color: #555;
+      background-color: rgba(255, 255, 255, 0.1); /* Added a slight background */
     }
     
     #addCostForm input {
@@ -55,7 +32,7 @@
     }
     /* END OF FORM CSS */
     
-    /* NEW CSS FOR THE COST LIST */
+    /* CSS FOR THE COST LIST */
     .cost-list-container {
       width: 600px;
       margin-top: 20px;
@@ -71,30 +48,36 @@
       justify-content: space-between; /* Puts button on the right */
       align-items: center;
       padding: 10px;
-      border-bottom: 1px solid #ddd;
-    }
-    
-    body.dark-mode #costList li {
-      border-bottom-color: #444;
+      border-bottom: 1px solid #000000;
     }
     
     #costList .delete-btn {
-      background-color: #FF6384;
-      color: white;
+      background-color: #580903;
+      color: rgb(255, 255, 255);
       border: none;
       padding: 5px 10px;
       border-radius: 5px;
       cursor: pointer;
     }
-    /* END OF NEW CSS */
+
+    @keyframes gradient {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+    /* END OF CSS */
     
   </style>
 </head>
 <body>
 
   <h1>My Monthly Costs</h1>
-  <button id="darkModeToggle">Toggle Dark/Light Mode</button>
-  
   <form id="addCostForm">
     <h3>Add New Cost</h3>
     <label for="categoryInput">Category:</label>

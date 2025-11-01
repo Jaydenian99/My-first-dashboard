@@ -1,15 +1,6 @@
 console.log("app.js file has loaded!");
 
-// --- Dark Mode Toggle ---
-document.addEventListener('DOMContentLoaded', () => {
-  const toggleButton = document.getElementById('darkModeToggle');
-  const body = document.querySelector('body');
-
-  toggleButton.addEventListener('click', () => {
-    body.classList.toggle('dark-mode');
-  });
-});
-// --- End of Dark Mode Toggle ---
+// The dark mode toggle code block has been removed from here.
 
 let myChart = null; 
 
@@ -36,7 +27,7 @@ async function setupDashboard() {
 
   const ctx = document.getElementById('myChart').getContext('2d');
 
-  // This is the updated chart block
+ // This is the updated chart block
   myChart = new Chart(ctx, {
     type: 'bar', 
     data: {
@@ -53,7 +44,17 @@ async function setupDashboard() {
         legend: { display: false }
       },
       scales: {
-        y: { beginAtZero: true }
+        y: { // This is the Y-axis (the amounts on the left)
+          beginAtZero: true,
+          ticks: {
+            color: '#FFFFFF' // <-- ADDED: Sets Y-axis text to white
+          }
+        },
+        x: { // This is the X-axis (the categories on the bottom)
+          ticks: {
+            color: '#FFFFFF' // <-- ADDED: Sets X-axis text to white
+          }
+        }
       }
     }
   });
