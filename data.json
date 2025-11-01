@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1678886400002,
+    "Category": "Boodschappen",
+    "Amount": 150
+  },
+  {
+    "id": 1678886400003,
+    "Category": "Abonnementen",
+    "Amount": 600
+  },
+  {
+    "id": 1678886400004,
+    "Category": "Utilities",
+    "Amount": 279
+  },
+  {
+    "id": 1678886400005,
+    "Category": "Dining Out",
+    "Amount": 100
+  },
+  {
+    "id": 1678886400006,
+    "Category": "Transport",
+    "Amount": 50
+  },
+  {
+    "id": 1678886400007,
+    "Category": "Transport",
+    "Amount": 100
+  },
+  {
+    "id": 1762034870516,
+    "Category": "Rent",
+    "Amount": 500
+  }
+]

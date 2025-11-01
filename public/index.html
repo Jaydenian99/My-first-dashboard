@@ -15,9 +15,9 @@
       /* Add a smooth transition: */
       transition: background-color 0.3s, color 0.3s;
     }
-    .chart-container { width: 600px; } /* I made this 600px from 400px for the bar chart */
+    .chart-container { width: 600px; }
 
-    /* ADD THESE NEW STYLES: */
+    /* Dark Mode styles */
     body.dark-mode {
       background-color: #222;
       color: #eee;
@@ -38,7 +38,7 @@
       border-color: #555;
     }
     
-    /* NEW CSS FOR THE FORM */
+    /* CSS FOR THE FORM */
     #addCostForm {
       margin-top: 20px;
       padding: 15px;
@@ -52,6 +52,39 @@
     
     #addCostForm input {
       margin-right: 10px;
+    }
+    /* END OF FORM CSS */
+    
+    /* NEW CSS FOR THE COST LIST */
+    .cost-list-container {
+      width: 600px;
+      margin-top: 20px;
+    }
+    
+    #costList {
+      list-style: none;
+      padding: 0;
+    }
+    
+    #costList li {
+      display: flex;
+      justify-content: space-between; /* Puts button on the right */
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    body.dark-mode #costList li {
+      border-bottom-color: #444;
+    }
+    
+    #costList .delete-btn {
+      background-color: #FF6384;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
     }
     /* END OF NEW CSS */
     
@@ -72,8 +105,15 @@
     
     <button type="submit">Add Cost</button>
   </form>
+
   <div class="chart-container">
     <canvas id="myChart"></canvas>
+  </div>
+
+  <div class="cost-list-container">
+    <h3>Current Costs</h3>
+    <ul id="costList">
+      </ul>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
