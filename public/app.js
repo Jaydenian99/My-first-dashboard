@@ -29,8 +29,14 @@ async function setupDashboard() {
   // --- 1. Render the chart ---
   const labels = data.map(row => row.Category);
   const amounts = data.map(row => row.Amount);
+
+  // NEW: Generate an array of random dark colors
+  // This will create one random color for every label in your data.
+  const randomColors = labels.map(() => getRandomDarkColor());
+
   const ctx = document.getElementById('myChart').getContext('2d');
 
+  // This is the updated chart block
   myChart = new Chart(ctx, {
     type: 'bar', 
     data: {
@@ -38,7 +44,7 @@ async function setupDashboard() {
       datasets: [{
         label: 'Cost',
         data: amounts,
-        backgroundColor: '#36A2EB'
+        backgroundColor: randomColors // Use the new random color array
       }]
     },
     options: {
@@ -138,4 +144,12 @@ function setupDeleteListener() {
       }
     }
   });
+}
+
+// Helper function to generate a random dark color
+function getRandomDarkColor() {
+  const hue = Math.floor(Math.random() * 361); // 0-360 degrees
+  const saturation = Math.floor(Math.random() * 41) + 60; // 60-100% (nice and vibrant)
+  const lightness = Math.floor(Math.random() * 21) + 20; // 20-40% (nice and dark)
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
