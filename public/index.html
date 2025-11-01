@@ -6,13 +6,43 @@
   <title>My Financial Dashboard</title>
   <style>
     /* Basic styling */
-    body { font-family: Arial, sans-serif; display: grid; place-items: center; min-height: 90vh; background-color: #f4f4f4; }
-    .chart-container { width: 400px; }
+    body { 
+      font-family: Arial, sans-serif; 
+      display: grid; 
+      place-items: center; 
+      min-height: 90vh; 
+      background-color: #f4f4f4; 
+      /* Add a smooth transition: */
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .chart-container { width: 600px; } /* I made this 600px from 400px for the bar chart */
+
+    /* ADD THESE NEW STYLES: */
+    body.dark-mode {
+      background-color: #222;
+      color: #eee;
+    }
+    
+    #darkModeToggle {
+      /* A little styling for the button */
+      padding: 8px 12px;
+      border: 1px solid #888;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    body.dark-mode #darkModeToggle {
+      /* Button styling for dark mode */
+      background-color: #333;
+      color: #eee;
+      border-color: #555;
+    }
   </style>
 </head>
 <body>
 
   <h1>My Monthly Costs</h1>
+  <button id="darkModeToggle">Toggle Dark/Light Mode</button>
   <div class="chart-container">
     <canvas id="myChart"></canvas>
   </div>

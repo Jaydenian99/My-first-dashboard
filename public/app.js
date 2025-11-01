@@ -1,8 +1,21 @@
 console.log("app.js file has loaded!");
 
-// ... rest of your code ...
-window.addEventListener('load', setupDashboard);
-// ... etc ...// This function runs when the webpage has finished loading
+// --- Dark Mode Toggle ---
+// This code runs as soon as the HTML is parsed
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleButton = document.getElementById('darkModeToggle');
+  const body = document.querySelector('body');
+
+  toggleButton.addEventListener('click', () => {
+    // This one line adds the .dark-mode class if it's not there,
+    // and removes it if it is.
+    body.classList.toggle('dark-mode');
+  });
+});
+// --- End of Dark Mode Toggle ---
+
+
+// This is your existing code
 window.addEventListener('load', setupDashboard);
 
 async function setupDashboard() {
@@ -18,7 +31,7 @@ async function setupDashboard() {
 
   // 4. Create the chart!
   new Chart(ctx, {
-    type: 'pie', // You can change this to 'bar', 'line', etc.
+    type: 'bar', // You can change this to 'bar', 'line', etc.
     data: {
       labels: labels, // Use our categories as labels
       datasets: [{
