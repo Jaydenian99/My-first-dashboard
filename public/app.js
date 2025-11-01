@@ -15,10 +15,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- End of Dark Mode Toggle ---
 
 
-// This is your existing code
-window.addEventListener('load', setupDashboard);
+let myChart = null; // <-- MOVED chart variable here to make it global
+
+// Updated this to load the chart AND set up the form
+window.addEventListener('load', () => {
+  setupDashboard();
+  setupFormListener(); // <-- ADDED this call
+});
 
 async function setupDashboard() {
+  // ADDED this check to destroy the old chart before drawing a new one
+  if (myChart) {
+    myChart.destroy();
+  }
+
   // 1. Get the data from our API
   const data = await fetchData();
   
@@ -30,28 +40,27 @@ async function setupDashboard() {
   const ctx = document.getElementById('myChart').getContext('2d');
 
   // 4. Create the chart!
-  new Chart(ctx, {
-    type: 'bar', // You can change this to 'bar', 'line', etc.
+  // CHANGED "new Chart(...)" to "myChart = new Chart(...)"
+  myChart = new Chart(ctx, {
+    type: 'bar', 
     data: {
       labels: labels, // Use our categories as labels
       datasets: [{
         label: 'Cost',
         data: amounts, // Use our amounts as data
-        backgroundColor: [ // Some nice colors
-          '#FF6384',
-          '#36A2EB',
-          '#FFCE56',
-          '#4BC0C0',
-          '#9966FF',
-          '#FF9F40'
-        ]
+        backgroundColor: '#67147cff' // <-- Bonus: Single color for bar chart
       }]
     },
-    options: {
+    options: { // <-- Bonus: Better options for a bar chart
       responsive: true,
       plugins: {
         legend: {
-          position: 'top',
+          display: false // No legend needed for a bar chart
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true // Makes sure the bar chart starts at 0
         }
       }
     }
@@ -63,4 +72,47 @@ async function fetchData() {
   const response = await fetch('/api/data'); // 'fetch' is the browser's way to get data
   const data = await response.json();
   return data;
+}
+
+// --- ADDED THIS ENTIRE NEW FUNCTION ---
+// This function listens for the "submit" button click on your new form
+function setupFormListener() {
+  const form = document.getElementById('addCostForm');
+
+  form.addEventListener('submit', async (event) => {
+    // Stop the page from doing a full reload
+    event.preventDefault(); 
+
+    const categoryInput = document.getElementById('categoryInput');
+    const amountInput = document.getElementById('amountInput');
+
+    const newData = {
+      category: categoryInput.value,
+      amount: parseFloat(amountInput.value) // Convert text to a number
+    };
+
+    // Send the new data to our server's /api/add endpoint
+    const response = await fetch('/api/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(newData)
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      // It worked!
+      // Clear the input boxes
+      categoryInput.value = '';
+      amountInput.value = '';
+      
+      // Reload the chart to show the new data
+      setupDashboard(); 
+    } else {
+      // Show an error if it failed
+      alert('Error saving data: ' + result.message);
+    }
+  });
 }

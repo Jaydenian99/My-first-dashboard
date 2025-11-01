@@ -37,12 +37,41 @@
       color: #eee;
       border-color: #555;
     }
+    
+    /* NEW CSS FOR THE FORM */
+    #addCostForm {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    
+    body.dark-mode #addCostForm {
+      border-color: #555;
+    }
+    
+    #addCostForm input {
+      margin-right: 10px;
+    }
+    /* END OF NEW CSS */
+    
   </style>
 </head>
 <body>
 
   <h1>My Monthly Costs</h1>
   <button id="darkModeToggle">Toggle Dark/Light Mode</button>
+  
+  <form id="addCostForm">
+    <h3>Add New Cost</h3>
+    <label for="categoryInput">Category:</label>
+    <input type="text" id="categoryInput" placeholder="e.g., Transport" required>
+    
+    <label for="amountInput">Amount:</label>
+    <input type="number" id="amountInput" placeholder="e.g., 100" required>
+    
+    <button type="submit">Add Cost</button>
+  </form>
   <div class="chart-container">
     <canvas id="myChart"></canvas>
   </div>
