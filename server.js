@@ -1,19 +1,43 @@
 const express = require('express');
-const fs = require('fs'); // We still need the File System
-const path = require('path'); // A built-in Node.js module
+const fs = require('fs');
+const path = require('path');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+const USERS_FILE = path.join(__dirname, 'users.json');
 
 app.use(express.static('public'));
 app.use(express.json());
 
-// Helper function to read the JSON file
-function readData(callback) {
-  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
+// Middleware to verify JWT token
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Access token required' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      console.error(err);
+      return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+}
+
+// Helper function to read JSON file
+function readJsonFile(filePath, callback) {
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        // File doesn't exist, return empty array
+        return callback(null, []);
+      }
       return callback(err);
     }
     try {
@@ -24,20 +48,136 @@ function readData(callback) {
   });
 }
 
-// Helper function to write to the JSON file
-function writeData(data, callback) {
-  fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf8', (err) => {
+// Helper function to write JSON file
+function writeJsonFile(filePath, data, callback) {
+  fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
     if (err) {
-      console.error(err);
       return callback(err);
     }
     callback(null);
   });
 }
 
-// --- ROUTE 1: GETS ALL DATA (Updated for JSON) ---
-app.get('/api/data', (req, res) => {
-  readData((err, data) => {
+// Helper to get user's data file
+function getUserDataFile(username) {
+  return path.join(__dirname, `data_${username}.json`);
+}
+
+// Helper to read user-specific data
+function readUserData(username, callback) {
+  const userDataFile = getUserDataFile(username);
+  readJsonFile(userDataFile, callback);
+}
+
+// Helper to write user-specific data
+function writeUserData(username, data, callback) {
+  const userDataFile = getUserDataFile(username);
+  writeJsonFile(userDataFile, data, callback);
+}
+
+// --- AUTHENTICATION ROUTES ---
+
+// Signup endpoint
+app.post('/api/signup', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'Username and password are required' });
+  }
+
+  if (username.length < 3) {
+    return res.status(400).json({ success: false, message: 'Username must be at least 3 characters' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+  }
+
+  readJsonFile(USERS_FILE, async (err, users) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Server error' });
+    }
+
+    // Check if user already exists
+    const existingUser = users.find(u => u.username === username);
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Username already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const newUser = {
+      username,
+      password: hashedPassword,
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newUser);
+
+    writeJsonFile(USERS_FILE, users, (err) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Server error' });
+      }
+
+      // Initialize user's data file with empty array
+      writeUserData(username, [], (err) => {
+        if (err) {
+          console.error('Error initializing user data:', err);
+        }
+      });
+
+      // Generate JWT token
+      const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '7d' });
+
+      res.json({ success: true, token, username });
+    });
+  });
+});
+
+// Login endpoint
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'Username and password are required' });
+  }
+
+  readJsonFile(USERS_FILE, async (err, users) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Server error' });
+    }
+
+    const user = users.find(u => u.username === username);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+    }
+
+    // Verify password
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({ success: true, token, username });
+  });
+});
+
+// Verify token endpoint
+app.get('/api/verify', authenticateToken, (req, res) => {
+  res.json({ success: true, username: req.user.username });
+});
+
+// --- DATA ROUTES (Protected) ---
+
+// GET all data for authenticated user
+app.get('/api/data', authenticateToken, (req, res) => {
+  const username = req.user.username;
+  readUserData(username, (err, data) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -45,22 +185,23 @@ app.get('/api/data', (req, res) => {
   });
 });
 
-// --- ROUTE 2: ADDS A NEW COST (Updated for JSON) ---
-app.post('/api/add', (req, res) => {
-  readData((err, data) => {
+// ADD a new cost (Protected)
+app.post('/api/add', authenticateToken, (req, res) => {
+  const username = req.user.username;
+  readUserData(username, (err, data) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Server error' });
     }
     
     const newEntry = {
-      id: Date.now(), // Create a unique ID based on the current time
+      id: Date.now(),
       Category: req.body.category,
       Amount: parseFloat(req.body.amount)
     };
 
-    data.push(newEntry); // Add the new entry to the array
+    data.push(newEntry);
 
-    writeData(data, (err) => {
+    writeUserData(username, data, (err) => {
       if (err) {
         return res.status(500).json({ success: false, message: 'Server error' });
       }
@@ -69,24 +210,23 @@ app.post('/api/add', (req, res) => {
   });
 });
 
-// --- ROUTE 3: DELETES A COST (The New Route!) ---
-app.post('/api/delete', (req, res) => {
-  const { id } = req.body; // Get the ID from the request
+// DELETE a cost (Protected)
+app.post('/api/delete', authenticateToken, (req, res) => {
+  const username = req.user.username;
+  const { id } = req.body;
 
-  readData((err, data) => {
+  readUserData(username, (err, data) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Server error' });
     }
 
-    // Create a new array *without* the item we want to delete
     const newData = data.filter(item => item.id !== id);
 
     if (data.length === newData.length) {
-      // Nothing was filtered, so the ID wasn't found
       return res.status(404).json({ success: false, message: 'Item not found' });
     }
 
-    writeData(newData, (err) => {
+    writeUserData(username, newData, (err) => {
       if (err) {
         return res.status(500).json({ success: false, message: 'Server error' });
       }

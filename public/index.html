@@ -1,34 +1,214 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Financial Dashboard</title>
   <style>
+    /* CSS Variables for theming */
+    :root {
+      --bg-primary: #f8f9fa;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: rgba(255, 255, 255, 0.9);
+      --text-primary: #2c3e50;
+      --text-secondary: #6c757d;
+      --border-color: #e9ecef;
+      --chart-bg: #ffffff;
+      --button-bg: #6c98d4;
+      --button-hover: #5a7fb8;
+      --delete-btn-bg: #e74c3c;
+      --delete-btn-hover: #c0392b;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #1a202c;
+      --bg-secondary: #2d3748;
+      --bg-tertiary: rgba(45, 55, 72, 0.9);
+      --text-primary: #f7fafc;
+      --text-secondary: #cbd5e0;
+      --border-color: #4a5568;
+      --chart-bg: #2d3748;
+      --button-bg: #6c98d4;
+      --button-hover: #5a7fb8;
+      --delete-btn-bg: #e74c3c;
+      --delete-btn-hover: #c0392b;
+    }
+
     /* Basic styling */
     body { 
-      font-family: Arial, sans-serif; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
       display: grid; 
       place-items: center; 
-      min-height: 90vh; 
-      background: linear-gradient(-45deg,#2b292b);
-      background-size: 400% 400%;
-      animation: gradient 15s ease infinite; 
-      color: #ffffff; /* Added a default text color for the dark background */
+      min-height: 100vh; 
+      margin: 0;
+      padding: 20px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
+      position: relative;
+      overflow-x: hidden;
     }
-    .chart-container { width: 600px; }
+
+    /* Clean, calming background with subtle patterns */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      opacity: 0.4;
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(108, 152, 212, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(108, 152, 212, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(108, 152, 212, 0.08) 0%, transparent 50%);
+      background-size: 100% 100%, 100% 100%, 100% 100%;
+      pointer-events: none;
+    }
+
+    [data-theme="dark"] body::before {
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(108, 152, 212, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(108, 152, 212, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(108, 152, 212, 0.1) 0%, transparent 50%);
+    }
+
+    [data-theme="light"] body {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    [data-theme="dark"] body {
+      background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+    }
+
+    .chart-container { 
+      width: 600px; 
+      position: relative;
+      padding: 20px;
+      border-radius: 12px;
+      background-color: var(--bg-tertiary);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    [data-theme="dark"] .chart-container {
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Chart Type Selector */
+    .chart-type-selector {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .chart-type-selector label {
+      font-weight: bold;
+      margin-right: 10px;
+      color: var(--text-primary);
+    }
+
+    .chart-type-selector select {
+      padding: 8px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 150px;
+    }
+
+    .chart-type-selector select:hover {
+      border-color: var(--button-bg);
+      transform: scale(1.02);
+    }
+
+    .chart-type-selector select:focus {
+      outline: none;
+      border-color: var(--button-bg);
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+    }
+
+    [data-theme="dark"] .chart-type-selector select {
+      box-shadow: 0 0 0 3px rgba(112, 109, 109, 0.2);
+    }
+
+    /* Dark Mode Toggle Button */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: var(--button-bg);
+      color: var(--text-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 50px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--button-hover);
+      transform: scale(1.05);
+    }
 
     /* CSS FOR THE FORM */
     #addCostForm {
       margin-top: 20px;
-      padding: 15px;
-      border: 1px solid #000000;
-      border-radius: 8px;
-      background-color: rgba(255, 255, 255, 0.1); /* Added a slight background */
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background-color: var(--bg-tertiary);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    [data-theme="dark"] #addCostForm {
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     }
     
     #addCostForm input {
       margin-right: 10px;
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+
+    #addCostForm input:focus {
+      outline: none;
+      border-color: var(--button-bg);
+    }
+
+    #addCostForm button[type="submit"] {
+      background-color: var(--button-bg);
+      color: var(--text-primary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    #addCostForm button[type="submit"]:hover {
+      background-color: var(--button-hover);
     }
     /* END OF FORM CSS */
     
@@ -36,6 +216,17 @@
     .cost-list-container {
       width: 450px;
       margin-top: 20px;
+      padding: 20px;
+      border-radius: 12px;
+      background-color: var(--bg-tertiary);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    [data-theme="dark"] .cost-list-container {
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     }
     
     #costList {
@@ -45,39 +236,239 @@
     
     #costList li {
       display: flex;
-      justify-content: space-between; /* Puts button on the right */
+      justify-content: space-between;
       align-items: center;
       padding: 10px;
-      border-bottom: 1px solid #000000;
+      border-bottom: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
     }
     
     #costList .delete-btn {
-      background-color: #706d6d;
+      background-color: var(--delete-btn-bg);
       color: rgb(255, 255, 255);
       border: none;
       padding: 5px 10px;
       border-radius: 5px;
       cursor: pointer;
+      transition: background-color 0.3s ease;
     }
 
-    @keyframes gradient {
-      0% {
-        background-position: 0% 50%;
-      }
-      50% {
-        background-position: 100% 50%;
-      }
-      100% {
-        background-position: 0% 50%;
-      }
+    #costList .delete-btn:hover {
+      background-color: var(--delete-btn-hover);
     }
+
+    /* Authentication UI */
+    .auth-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .auth-container.show {
+      display: flex;
+    }
+
+    .auth-box {
+      background-color: var(--bg-tertiary);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      min-width: 350px;
+      max-width: 400px;
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 12px;
+      background-color: transparent;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+
+    .auth-tab.active {
+      background-color: var(--button-bg);
+      border-color: var(--button-bg);
+      color: white;
+    }
+
+    .auth-tab:hover {
+      border-color: var(--button-bg);
+    }
+
+    .auth-form {
+      display: none;
+    }
+
+    .auth-form.active {
+      display: block;
+    }
+
+    .auth-form input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: all 0.3s ease;
+    }
+
+    .auth-form input:focus {
+      outline: none;
+      border-color: var(--button-bg);
+      box-shadow: 0 0 0 3px rgba(108, 152, 212, 0.1);
+    }
+
+    .auth-form button {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--button-bg);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 10px;
+    }
+
+    .auth-form button:hover {
+      background-color: var(--button-hover);
+    }
+
+    .auth-form button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .auth-error {
+      color: #e74c3c;
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .auth-error.show {
+      display: block;
+    }
+
+    .user-info {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: var(--bg-tertiary);
+      backdrop-filter: blur(10px);
+      padding: 10px 20px;
+      border-radius: 50px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: none;
+      align-items: center;
+      gap: 15px;
+      z-index: 1001;
+    }
+
+    .user-info.show {
+      display: flex;
+    }
+
+    .user-info span {
+      color: var(--text-primary);
+      font-weight: bold;
+    }
+
+    .logout-btn {
+      background-color: var(--delete-btn-bg);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background-color: var(--delete-btn-hover);
+    }
+
+    .dashboard-content {
+      display: none;
+    }
+
+    .dashboard-content.show {
+      display: block;
+    }
+
     /* END OF CSS */
     
   </style>
 </head>
 <body>
 
-  <h1>My Monthly Costs</h1>
+  <!-- Authentication UI -->
+  <div class="auth-container show" id="authContainer">
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="loginTab">Login</button>
+        <button class="auth-tab" id="signupTab">Sign Up</button>
+      </div>
+
+      <!-- Login Form -->
+      <form class="auth-form active" id="loginForm">
+        <input type="text" id="loginUsername" placeholder="Username" required>
+        <input type="password" id="loginPassword" placeholder="Password" required>
+        <button type="submit">Login</button>
+        <div class="auth-error" id="loginError"></div>
+      </form>
+
+      <!-- Signup Form -->
+      <form class="auth-form" id="signupForm">
+        <input type="text" id="signupUsername" placeholder="Username (min 3 characters)" required>
+        <input type="password" id="signupPassword" placeholder="Password (min 6 characters)" required>
+        <button type="submit">Sign Up</button>
+        <div class="auth-error" id="signupError"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- User Info -->
+  <div class="user-info" id="userInfo">
+    <span>Welcome, <span id="usernameDisplay"></span>!</span>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div class="dashboard-content" id="dashboardContent">
+    <button class="theme-toggle" id="themeToggle">☀️ Light Mode</button>
+
+    <h1>My Monthly Costs</h1>
   <form id="addCostForm">
     <h3>Add New Cost</h3>
     <label for="categoryInput">Category:</label>
@@ -90,13 +481,22 @@
   </form>
 
   <div class="chart-container">
+    <div class="chart-type-selector">
+      <label for="chartTypeSelect">Chart Type:</label>
+      <select id="chartTypeSelect">
+        <option value="bar">Bar Chart</option>
+        <option value="pie">Pie Chart</option>
+        <option value="line">Line Chart</option>
+      </select>
+    </div>
     <canvas id="myChart"></canvas>
   </div>
 
-  <div class="cost-list-container">
-    <h3>Current Costs</h3>
-    <ul id="costList">
-      </ul>
+    <div class="cost-list-container">
+      <h3>Current Costs</h3>
+      <ul id="costList">
+        </ul>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
