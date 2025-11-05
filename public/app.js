@@ -349,9 +349,11 @@ function renderCostList(data) {
 
   data.forEach(item => {
     const li = document.createElement('li');
+    // Format amount to show 2 decimal places
+    const formattedAmount = parseFloat(item.Amount).toFixed(2);
     // We use data-id to store the item's unique ID on the button
     li.innerHTML = `
-      <span>${item.Category}: $${item.Amount}</span>
+      <span>${item.Category}: $${formattedAmount}</span>
       <button class="delete-btn" data-id="${item.id}">Delete</button>
     `;
     listElement.appendChild(li);

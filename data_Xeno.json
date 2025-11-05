@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "id": 1762373354198,
+    "Category": "huur",
+    "Amount": 540
+  },
+  {
+    "id": 1762373361856,
+    "Category": "abonnement",
+    "Amount": 130
+  },
+  {
+    "id": 1762373382189,
+    "Category": "reis",
+    "Amount": 645
+  },
+  {
+    "id": 1762373402584,
+    "Category": "Mcdonalds",
+    "Amount": 6
+  }
+]
