@@ -10,6 +10,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
 const USERS_FILE = path.join(__dirname, 'users.json');
+const PASSWORD_RESET_BASE_URL = process.env.PASSWORD_RESET_BASE_URL || process.env.APP_BASE_URL || process.env.FRONTEND_BASE_URL;
 
 const {
   SMTP_HOST,
@@ -34,8 +35,11 @@ const transporter = (SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS)
 
 const MAIL_SENDER = MAIL_FROM || 'no-reply@my-first-dashboard.local';
 
+app.set('trust proxy', true);
+
 app.use(express.static('public'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Middleware to verify JWT token
 function authenticateToken(req, res, next) {
@@ -321,7 +325,10 @@ app.post('/api/forgot-password', async (req, res) => {
     user.passwordResetExpires = resetExpiry;
     user.passwordResetRequestedAt = new Date().toISOString();
 
-    const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
+    const baseUrl = PASSWORD_RESET_BASE_URL
+      ? PASSWORD_RESET_BASE_URL.replace(/\/$/, '')
+      : `${req.protocol}://${req.get('host')}`;
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
     writeJsonFile(USERS_FILE, users, async (writeErr) => {
       if (writeErr) {
