@@ -232,10 +232,6 @@ function setupResponsiveHandlers() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       detectDeviceType();
-      // Update chart if it exists
-      if (myChart) {
-        myChart.resize();
-      }
     }, 250);
   });
   
@@ -243,9 +239,6 @@ function setupResponsiveHandlers() {
   window.addEventListener('orientationchange', () => {
     setTimeout(() => {
       detectDeviceType();
-      if (myChart) {
-        myChart.resize();
-      }
     }, 100);
   });
 }
@@ -519,7 +512,8 @@ async function setupDashboard(forceRefresh = false) {
 
       const commonOptions = {
         responsive: true,
-        maintainAspectRatio: !isMobileDevice,
+        maintainAspectRatio: true,
+        aspectRatio: isMobileDevice ? 1.2 : 1.8,
         plugins: {
           legend: {
             display: currentChartType === 'pie',
