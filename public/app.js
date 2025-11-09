@@ -8,6 +8,9 @@ let authToken = null;
 let currentUsername = null;
 let dashboardLoadPromise = null;
 let hasDashboardLoadErrorAlerted = false;
+let resetPasswordToken = null;
+let isResetFlowActive = false;
+let showAuthSection = () => {};
 
 // Translation object
 const translations = {
@@ -23,9 +26,25 @@ const translations = {
     password: 'Password',
     usernamePlaceholder: 'Username',
     passwordPlaceholder: 'Password',
+    identifierPlaceholder: 'Email or Username',
+    email: 'Email',
+    emailPlaceholder: 'Email address',
     usernameMinChars: 'Username (min 3 characters)',
     passwordMinChars: 'Password (min 6 characters)',
     welcome: 'Welcome,',
+    forgotPassword: 'Forgot password?',
+    forgotPasswordInfo: 'Enter your email address and we will send you a link to reset your password.',
+    sendResetLink: 'Send Reset Link',
+    backToLogin: 'Back to login',
+    resetPassword: 'Reset Password',
+    resetPasswordInfo: 'Choose a new password for your account.',
+    confirmPasswordPlaceholder: 'Confirm new password',
+    passwordsDoNotMatch: 'Passwords do not match',
+    resetPasswordSuccess: 'Password reset successfully. Please login with your new password.',
+    resetPasswordFailed: 'Failed to reset password',
+    resetLinkSent: 'If that email is registered, we have sent a reset link.',
+    upgradeEmailInfo: 'Please add an email address to secure your account.',
+    emailRequired: 'Email is required',
     
     // Dashboard
     monthlyCosts: 'My Monthly Costs',
@@ -98,9 +117,25 @@ const translations = {
     password: 'Wachtwoord',
     usernamePlaceholder: 'Gebruikersnaam',
     passwordPlaceholder: 'Wachtwoord',
+    identifierPlaceholder: 'E-mail of gebruikersnaam',
+    email: 'E-mail',
+    emailPlaceholder: 'E-mailadres',
     usernameMinChars: 'Gebruikersnaam (min 3 tekens)',
     passwordMinChars: 'Wachtwoord (min 6 tekens)',
     welcome: 'Welkom,',
+    forgotPassword: 'Wachtwoord vergeten?',
+    forgotPasswordInfo: 'Vul je e-mailadres in en we sturen je een link om je wachtwoord te resetten.',
+    sendResetLink: 'Resetlink versturen',
+    backToLogin: 'Terug naar inloggen',
+    resetPassword: 'Wachtwoord resetten',
+    resetPasswordInfo: 'Kies een nieuw wachtwoord voor je account.',
+    confirmPasswordPlaceholder: 'Bevestig nieuw wachtwoord',
+    passwordsDoNotMatch: 'Wachtwoorden komen niet overeen',
+    resetPasswordSuccess: 'Wachtwoord succesvol gereset. Log opnieuw in met je nieuwe wachtwoord.',
+    resetPasswordFailed: 'Wachtwoord resetten is mislukt',
+    resetLinkSent: 'Als dat e-mailadres bij ons bekend is, hebben we een resetlink verstuurd.',
+    upgradeEmailInfo: 'Voeg een e-mailadres toe om je account te beveiligen.',
+    emailRequired: 'E-mailadres is verplicht',
     
     // Dashboard
     monthlyCosts: 'Mijn Maandelijkse Kosten',
@@ -168,8 +203,9 @@ window.addEventListener('load', () => {
   initializeLanguage();
   initializeTheme();
   initializeChartType();
-  checkAuthState();
   setupAuthUI();
+  checkForResetToken();
+  checkAuthState();
   setupThemeToggle();
   setupChartTypeSelector();
   setupLanguageSelector();
@@ -271,6 +307,10 @@ function setUsername(username) {
 }
 
 async function checkAuthState() {
+  if (isResetFlowActive) {
+    return;
+  }
+
   const token = getAuthToken();
   const username = getUsername();
   
@@ -305,12 +345,17 @@ function showAuthUI() {
   document.getElementById('authContainer').classList.add('show');
   document.getElementById('dashboardContent').classList.remove('show');
   document.getElementById('userInfo').classList.remove('show');
+  if (!isResetFlowActive && typeof showAuthSection === 'function') {
+    showAuthSection('login');
+  }
 }
 
 function showDashboard() {
   document.getElementById('authContainer').classList.remove('show');
   document.getElementById('dashboardContent').classList.add('show');
   document.getElementById('userInfo').classList.add('show');
+  isResetFlowActive = false;
+  resetPasswordToken = null;
   updateWelcomeMessage();
   setupDashboard(true); // Load user's data
 }
@@ -331,43 +376,192 @@ function setupAuthUI() {
   const signupTab = document.getElementById('signupTab');
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
+  const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+  const resetPasswordForm = document.getElementById('resetPasswordForm');
+  const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+  const forgotPasswordBackBtn = document.getElementById('forgotPasswordBackBtn');
+  const resetPasswordBackBtn = document.getElementById('resetPasswordBackBtn');
   const logoutBtn = document.getElementById('logoutBtn');
+  const authTabs = document.querySelector('.auth-tabs');
+  const loginError = document.getElementById('loginError');
+  const signupError = document.getElementById('signupError');
+  const forgotPasswordError = document.getElementById('forgotPasswordError');
+  const forgotPasswordSuccess = document.getElementById('forgotPasswordSuccess');
+  const resetPasswordError = document.getElementById('resetPasswordError');
+  const resetPasswordSuccess = document.getElementById('resetPasswordSuccess');
+  const upgradeEmailContainer = document.getElementById('upgradeEmailContainer');
+  const loginUpgradeEmail = document.getElementById('loginUpgradeEmail');
+
+  function resetUpgradeEmailState() {
+    if (upgradeEmailContainer) {
+      upgradeEmailContainer.classList.remove('show');
+    }
+    if (loginUpgradeEmail) {
+      loginUpgradeEmail.value = '';
+    }
+  }
+
+  function resetForgotPasswordState() {
+    if (forgotPasswordError) {
+      forgotPasswordError.classList.remove('show');
+    }
+    if (forgotPasswordSuccess) {
+      forgotPasswordSuccess.classList.remove('show');
+    }
+    if (forgotPasswordForm) {
+      forgotPasswordForm.reset();
+    }
+  }
+
+  function resetResetPasswordState() {
+    if (resetPasswordError) {
+      resetPasswordError.classList.remove('show');
+    }
+    if (resetPasswordSuccess) {
+      resetPasswordSuccess.classList.remove('show');
+    }
+    if (resetPasswordForm) {
+      resetPasswordForm.reset();
+    }
+  }
+
+  function resetLoginError() {
+    if (loginError) {
+      loginError.classList.remove('show');
+    }
+  }
+
+  function resetSignupError() {
+    if (signupError) {
+      signupError.classList.remove('show');
+    }
+  }
+
+  function activateSection(section) {
+    const forms = {
+      login: loginForm,
+      signup: signupForm,
+      forgot: forgotPasswordForm,
+      reset: resetPasswordForm
+    };
+
+    Object.entries(forms).forEach(([key, form]) => {
+      if (!form) return;
+      if (key === section) {
+        form.classList.add('active');
+      } else {
+        form.classList.remove('active');
+      }
+    });
+
+    if (authTabs) {
+      authTabs.style.display = (section === 'login' || section === 'signup') ? 'flex' : 'none';
+    }
+
+    if (section === 'login') {
+      resetForgotPasswordState();
+      resetResetPasswordState();
+    } else if (section === 'signup') {
+      resetForgotPasswordState();
+      resetResetPasswordState();
+      resetUpgradeEmailState();
+    } else if (section === 'forgot') {
+      resetForgotPasswordState();
+      resetResetPasswordState();
+      resetUpgradeEmailState();
+    } else if (section === 'reset') {
+      resetResetPasswordState();
+      resetUpgradeEmailState();
+    }
+
+    if (section === 'login') {
+      loginTab.classList.add('active');
+      signupTab.classList.remove('active');
+    } else if (section === 'signup') {
+      signupTab.classList.add('active');
+      loginTab.classList.remove('active');
+    } else {
+      loginTab.classList.remove('active');
+      signupTab.classList.remove('active');
+    }
+  }
+
+  showAuthSection = activateSection;
 
   // Tab switching
   loginTab.addEventListener('click', () => {
-    loginTab.classList.add('active');
-    signupTab.classList.remove('active');
-    loginForm.classList.add('active');
-    signupForm.classList.remove('active');
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('signupError').classList.remove('show');
+    isResetFlowActive = false;
+    resetPasswordToken = null;
+    resetSignupError();
+    resetLoginError();
+    activateSection('login');
   });
 
   signupTab.addEventListener('click', () => {
-    signupTab.classList.add('active');
-    loginTab.classList.remove('active');
-    signupForm.classList.add('active');
-    loginForm.classList.remove('active');
-    document.getElementById('loginError').classList.remove('show');
-    document.getElementById('signupError').classList.remove('show');
+    isResetFlowActive = false;
+    resetPasswordToken = null;
+    resetLoginError();
+    resetSignupError();
+    activateSection('signup');
   });
+
+  if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', () => {
+      activateSection('forgot');
+      resetForgotPasswordState();
+      resetLoginError();
+    });
+  }
+
+  if (forgotPasswordBackBtn) {
+    forgotPasswordBackBtn.addEventListener('click', () => {
+      activateSection('login');
+      resetLoginError();
+    });
+  }
+
+  if (resetPasswordBackBtn) {
+    resetPasswordBackBtn.addEventListener('click', () => {
+      isResetFlowActive = false;
+      resetPasswordToken = null;
+      if (history.replaceState) {
+        history.replaceState({}, document.title, '/');
+      }
+      activateSection('login');
+      resetLoginError();
+    });
+  }
 
   // Login form
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const username = document.getElementById('loginUsername').value;
+    const identifier = document.getElementById('loginIdentifier').value.trim();
     const password = document.getElementById('loginPassword').value;
-    const errorDiv = document.getElementById('loginError');
+    const errorDiv = loginError;
     const submitBtn = loginForm.querySelector('button[type="submit"]');
+    const upgradeEmailValue = loginUpgradeEmail ? loginUpgradeEmail.value.trim() : '';
+    const shouldRequireEmail = upgradeEmailContainer && upgradeEmailContainer.classList.contains('show');
 
     submitBtn.disabled = true;
     errorDiv.classList.remove('show');
 
+    if (shouldRequireEmail && !upgradeEmailValue) {
+      errorDiv.textContent = getTranslation('emailRequired');
+      errorDiv.classList.add('show');
+      submitBtn.disabled = false;
+      return;
+    }
+
     try {
+      const payload = { identifier, password };
+      if (upgradeEmailValue) {
+        payload.email = upgradeEmailValue;
+      }
+
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
@@ -377,9 +571,23 @@ function setupAuthUI() {
         setUsername(data.username);
         showDashboard();
         loginForm.reset();
+        resetUpgradeEmailState();
+        errorDiv.classList.remove('show');
       } else {
-        errorDiv.textContent = data.message || getTranslation('loginFailed');
-        errorDiv.classList.add('show');
+        if (data.requiresEmail) {
+          if (upgradeEmailContainer) {
+            upgradeEmailContainer.classList.add('show');
+          }
+          const message = data.message || getTranslation('upgradeEmailInfo');
+          errorDiv.textContent = message;
+          errorDiv.classList.add('show');
+          if (loginUpgradeEmail) {
+            loginUpgradeEmail.focus();
+          }
+        } else {
+          errorDiv.textContent = data.message || getTranslation('loginFailed');
+          errorDiv.classList.add('show');
+        }
       }
     } catch (error) {
       errorDiv.textContent = getTranslation('networkError');
@@ -393,8 +601,9 @@ function setupAuthUI() {
   signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('signupUsername').value;
+    const email = document.getElementById('signupEmail').value.trim();
     const password = document.getElementById('signupPassword').value;
-    const errorDiv = document.getElementById('signupError');
+    const errorDiv = signupError;
     const submitBtn = signupForm.querySelector('button[type="submit"]');
 
     submitBtn.disabled = true;
@@ -404,7 +613,7 @@ function setupAuthUI() {
       const response = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, email, password })
       });
 
       const data = await response.json();
@@ -414,6 +623,7 @@ function setupAuthUI() {
         setUsername(data.username);
         showDashboard();
         signupForm.reset();
+        errorDiv.classList.remove('show');
       } else {
         errorDiv.textContent = data.message || getTranslation('signupFailed');
         errorDiv.classList.add('show');
@@ -426,16 +636,161 @@ function setupAuthUI() {
     }
   });
 
+  if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('forgotPasswordEmail').value.trim();
+      const submitBtn = forgotPasswordForm.querySelector('button[type="submit"]');
+
+      if (forgotPasswordError) {
+        forgotPasswordError.classList.remove('show');
+      }
+      if (forgotPasswordSuccess) {
+        forgotPasswordSuccess.classList.remove('show');
+      }
+
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          if (forgotPasswordSuccess) {
+            const successMessage = data.message || getTranslation('resetLinkSent');
+            forgotPasswordSuccess.textContent = successMessage;
+            forgotPasswordSuccess.classList.add('show');
+          }
+        } else {
+          if (forgotPasswordError) {
+            forgotPasswordError.textContent = data.message || getTranslation('networkError');
+            forgotPasswordError.classList.add('show');
+          }
+        }
+      } catch (error) {
+        if (forgotPasswordError) {
+          forgotPasswordError.textContent = getTranslation('networkError');
+          forgotPasswordError.classList.add('show');
+        }
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  if (resetPasswordForm) {
+    resetPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('resetPasswordInput').value;
+      const confirmPassword = document.getElementById('resetPasswordConfirmInput').value;
+      const submitBtn = resetPasswordForm.querySelector('button[type="submit"]');
+
+      if (resetPasswordError) {
+        resetPasswordError.classList.remove('show');
+      }
+      if (resetPasswordSuccess) {
+        resetPasswordSuccess.classList.remove('show');
+      }
+
+      if (password !== confirmPassword) {
+        if (resetPasswordError) {
+          resetPasswordError.textContent = getTranslation('passwordsDoNotMatch');
+          resetPasswordError.classList.add('show');
+        }
+        return;
+      }
+
+      if (!resetPasswordToken) {
+        if (resetPasswordError) {
+          resetPasswordError.textContent = getTranslation('resetPasswordFailed');
+          resetPasswordError.classList.add('show');
+        }
+        return;
+      }
+
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: resetPasswordToken, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          if (resetPasswordSuccess) {
+            resetPasswordSuccess.textContent = getTranslation('resetPasswordSuccess');
+            resetPasswordSuccess.classList.add('show');
+          }
+          resetPasswordToken = null;
+          isResetFlowActive = false;
+          resetPasswordForm.reset();
+          if (history.replaceState) {
+            history.replaceState({}, document.title, '/');
+          }
+          setTimeout(() => {
+            activateSection('login');
+            showAuthUI();
+          }, 1500);
+        } else {
+          if (resetPasswordError) {
+            resetPasswordError.textContent = data.message || getTranslation('resetPasswordFailed');
+            resetPasswordError.classList.add('show');
+          }
+        }
+      } catch (error) {
+        if (resetPasswordError) {
+          resetPasswordError.textContent = getTranslation('networkError');
+          resetPasswordError.classList.add('show');
+        }
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
   // Logout
   logoutBtn.addEventListener('click', () => {
     setAuthToken(null);
     setUsername(null);
+    isResetFlowActive = false;
+    resetPasswordToken = null;
+    resetUpgradeEmailState();
     showAuthUI();
     if (myChart) {
       myChart.destroy();
       myChart = null;
     }
   });
+
+  activateSection('login');
+}
+
+function checkForResetToken() {
+  const url = new URL(window.location.href);
+  if (url.pathname === '/reset-password') {
+    const token = url.searchParams.get('token');
+    showAuthUI();
+    if (token) {
+      resetPasswordToken = token;
+      isResetFlowActive = true;
+      if (typeof showAuthSection === 'function') {
+        showAuthSection('reset');
+      }
+      if (history.replaceState) {
+        history.replaceState({}, document.title, '/reset-password');
+      }
+    } else if (typeof showAuthSection === 'function') {
+      showAuthSection('forgot');
+    }
+  }
 }
 
 // Helper function to make authenticated API requests

@@ -2,6 +2,11 @@
   {
     "username": "Xeno",
     "password": "$2b$10$Ysq3X9ffwFNpfc2.695gnOaIfrRzCzD6jJSAogXijK2.NvDcMg7wO",
-    "createdAt": "2025-11-05T20:02:16.652Z"
+    "createdAt": "2025-11-05T20:02:16.652Z",
+    "email": "jaydenian.99@gmail.com",
+    "emailUpdatedAt": "2025-11-09T01:05:55.064Z",
+    "passwordResetToken": "14ec131cb6d78b2c877cfecc4b90821478b8f929038ba2553ae9492cf48452af",
+    "passwordResetExpires": 1762654016499,
+    "passwordResetRequestedAt": "2025-11-09T01:06:56.499Z"
   }
 ]
