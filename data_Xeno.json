@@ -1,22 +1,67 @@
 [
   {
-    "id": 1762373354198,
-    "Category": "huur",
-    "Amount": 540
+    "id": 1762643838210,
+    "Category": "Huur",
+    "Amount": 560
   },
   {
-    "id": 1762373361856,
-    "Category": "abonnement",
-    "Amount": 130
+    "id": 1762643915159,
+    "Category": "Auto Parkeer Garage",
+    "Amount": 279
   },
   {
-    "id": 1762373382189,
-    "Category": "reis",
-    "Amount": 645
+    "id": 1762643929511,
+    "Category": "Boodschappen",
+    "Amount": 250
   },
   {
-    "id": 1762373402584,
-    "Category": "Mcdonalds",
-    "Amount": 6
+    "id": 1762643982929,
+    "Category": "Odido",
+    "Amount": 156.64
+  },
+  {
+    "id": 1762644023124,
+    "Category": "Chubb Verzekering",
+    "Amount": 15.95
+  },
+  {
+    "id": 1762644055451,
+    "Category": "Duo Aflossen",
+    "Amount": 8.76
+  },
+  {
+    "id": 1762644080159,
+    "Category": "Zorgverzekering",
+    "Amount": 155.95
+  },
+  {
+    "id": 1762644100072,
+    "Category": "NS Flex (Varieert)",
+    "Amount": 150
+  },
+  {
+    "id": 1762644208526,
+    "Category": "Rechtsbijstand Verzekering",
+    "Amount": 19.05
+  },
+  {
+    "id": 1762644228552,
+    "Category": "Aansprakelijkheid Verzekering",
+    "Amount": 3.59
+  },
+  {
+    "id": 1762644247229,
+    "Category": "Bril",
+    "Amount": 25.75
+  },
+  {
+    "id": 1762644258495,
+    "Category": "Uitgaven",
+    "Amount": 150
+  },
+  {
+    "id": 1762644266557,
+    "Category": "Spaar",
+    "Amount": 350
   }
 ]

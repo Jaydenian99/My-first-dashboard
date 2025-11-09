@@ -63,6 +63,11 @@ function getUserDataFile(username) {
   return path.join(__dirname, `data_${username}.json`);
 }
 
+// Helper to get user's salary file
+function getUserSalaryFile(username) {
+  return path.join(__dirname, `salary_${username}.json`);
+}
+
 // Helper to read user-specific data
 function readUserData(username, callback) {
   const userDataFile = getUserDataFile(username);
@@ -73,6 +78,18 @@ function readUserData(username, callback) {
 function writeUserData(username, data, callback) {
   const userDataFile = getUserDataFile(username);
   writeJsonFile(userDataFile, data, callback);
+}
+
+// Helper to read user salary
+function readUserSalary(username, callback) {
+  const userSalaryFile = getUserSalaryFile(username);
+  readJsonFile(userSalaryFile, callback);
+}
+
+// Helper to write user salary
+function writeUserSalary(username, salary, callback) {
+  const userSalaryFile = getUserSalaryFile(username);
+  writeJsonFile(userSalaryFile, salary, callback);
 }
 
 // --- AUTHENTICATION ROUTES ---
@@ -232,6 +249,82 @@ app.post('/api/delete', authenticateToken, (req, res) => {
       }
       res.json({ success: true, message: 'Item deleted' });
     });
+  });
+});
+
+// UPDATE a cost (Protected)
+app.post('/api/update', authenticateToken, (req, res) => {
+  const username = req.user.username;
+  const { id, category, amount } = req.body;
+
+  if (!id || category === undefined || amount === undefined) {
+    return res.status(400).json({ success: false, message: 'ID, category, and amount are required' });
+  }
+
+  readUserData(username, (err, data) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Server error' });
+    }
+
+    const itemIndex = data.findIndex(item => item.id === id);
+    if (itemIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Item not found' });
+    }
+
+    // Update the item
+    data[itemIndex].Category = category;
+    data[itemIndex].Amount = parseFloat(amount);
+
+    writeUserData(username, data, (err) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Server error' });
+      }
+      res.json({ success: true, updatedItem: data[itemIndex] });
+    });
+  });
+});
+
+// GET user salary (Protected)
+app.get('/api/salary', authenticateToken, (req, res) => {
+  const username = req.user.username;
+  readUserSalary(username, (err, salary) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Server error' });
+    }
+    // Return default values if no salary is set
+    if (!salary || Object.keys(salary).length === 0) {
+      return res.json({ 
+        success: true, 
+        salary: { 
+          beforeTax: 0, 
+          afterTax: 0 
+        } 
+      });
+    }
+    res.json({ success: true, salary });
+  });
+});
+
+// POST/UPDATE user salary (Protected)
+app.post('/api/salary', authenticateToken, (req, res) => {
+  const username = req.user.username;
+  const { beforeTax, afterTax } = req.body;
+
+  if (beforeTax === undefined || afterTax === undefined) {
+    return res.status(400).json({ success: false, message: 'Both beforeTax and afterTax are required' });
+  }
+
+  const salary = {
+    beforeTax: parseFloat(beforeTax),
+    afterTax: parseFloat(afterTax),
+    updatedAt: new Date().toISOString()
+  };
+
+  writeUserSalary(username, salary, (err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Server error' });
+    }
+    res.json({ success: true, salary });
   });
 });
 
