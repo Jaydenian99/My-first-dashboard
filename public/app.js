@@ -6,6 +6,8 @@ let currentChartType = 'bar'; // Default chart type
 let currentLanguage = 'en'; // Default language
 let authToken = null;
 let currentUsername = null;
+let dashboardLoadPromise = null;
+let hasDashboardLoadErrorAlerted = false;
 
 // Translation object
 const translations = {
@@ -317,7 +319,7 @@ function showDashboard() {
   document.getElementById('dashboardContent').classList.add('show');
   document.getElementById('userInfo').classList.add('show');
   updateWelcomeMessage();
-  setupDashboard(); // Load user's data
+  setupDashboard(true); // Load user's data
 }
 
 function updateWelcomeMessage() {
@@ -472,135 +474,157 @@ async function apiRequest(url, options = {}) {
   return response;
 }
 
-async function setupDashboard() {
-  if (myChart) {
-    myChart.destroy();
-  }
-
-  const data = await fetchData();
-  
-  // --- 1. Render the chart ---
-  const labels = data.map(row => row.Category);
-  const amounts = data.map(row => row.Amount);
-
-  // Generate an array of random colors based on current theme
-  // This will create one random color for every label in your data.
-  const randomColors = labels.map(() => getRandomColor());
-
-  const ctx = document.getElementById('myChart').getContext('2d');
-
-  // Base chart configuration
-  const isDark = currentTheme === 'dark';
-  const textColor = isDark ? '#FFFFFF' : '#333333';
-  const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-
-  // Detect if mobile device for chart sizing
-  const isMobileDevice = window.deviceInfo && window.deviceInfo.isMobile;
-  const isTabletDevice = window.deviceInfo && window.deviceInfo.isTablet;
-
-  // Common options for all chart types
-  const commonOptions = {
-    responsive: true,
-    maintainAspectRatio: !isMobileDevice, // Allow aspect ratio to adjust on mobile
-    plugins: {
-      legend: {
-        display: currentChartType === 'pie',
-        position: 'bottom',
-        labels: {
-          color: textColor,
-          padding: isMobileDevice ? 10 : 15,
-          font: {
-            size: isMobileDevice ? 10 : 12
-          }
-        }
-      },
-      tooltip: {
-        backgroundColor: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
-        titleColor: textColor,
-        bodyColor: textColor,
-        borderColor: gridColor,
-        borderWidth: 1,
-        titleFont: {
-          size: isMobileDevice ? 12 : 14
-        },
-        bodyFont: {
-          size: isMobileDevice ? 11 : 13
-        }
-      }
+async function setupDashboard(forceRefresh = false) {
+  if (dashboardLoadPromise) {
+    if (!forceRefresh) {
+      return dashboardLoadPromise;
     }
-  };
 
-  // Chart-specific options
-  let chartOptions = { ...commonOptions };
+    try {
+      await dashboardLoadPromise;
+    } catch (error) {
+      console.warn('Previous dashboard load failed', error);
+    }
+  }
 
-  // Add scales for bar and line charts (pie charts don't have scales)
-  if (currentChartType === 'bar' || currentChartType === 'line') {
-    chartOptions.scales = {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          color: textColor,
-          font: {
-            size: isMobileDevice ? 10 : 12
-          }
-        },
-        grid: {
-          color: gridColor
-        }
-      },
-      x: {
-        ticks: {
-          color: textColor,
-          font: {
-            size: isMobileDevice ? 10 : 12
-          }
-        },
-        grid: {
-          color: gridColor
-        }
+  dashboardLoadPromise = (async () => {
+    try {
+      if (myChart) {
+        myChart.destroy();
+        myChart = null;
       }
-    };
-  }
 
-  // Dataset configuration based on chart type
-  let datasetConfig = {
-    label: getTranslation('cost'),
-    data: amounts,
-    backgroundColor: randomColors
-  };
+      const data = await fetchData();
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid data format received from /api/data');
+      }
 
-  // For line charts, use a single primary color for the line with colored points
-  if (currentChartType === 'line') {
-    // Use a theme-appropriate color for the main line
-    const primaryLineColor = isDark ? '#4a90e2' : '#357abd';
-    
-    datasetConfig.borderColor = primaryLineColor;
-    datasetConfig.borderWidth = 3;
-    datasetConfig.fill = false;
-    datasetConfig.tension = 0.4; // Smooth curves
-    // Use different colors for each point to distinguish categories
-    datasetConfig.pointBackgroundColor = randomColors;
-    datasetConfig.pointBorderColor = primaryLineColor;
-    datasetConfig.pointBorderWidth = 2;
-    datasetConfig.pointRadius = 5;
-    datasetConfig.pointHoverRadius = 7;
-  }
+      const chartCanvas = document.getElementById('myChart');
+      if (!chartCanvas) {
+        return;
+      }
 
-  // Create the chart
-  myChart = new Chart(ctx, {
-    type: currentChartType,
-    data: {
-      labels: labels,
-      datasets: [datasetConfig]
-    },
-    options: chartOptions
-  });
+      const labels = data.map(row => row.Category);
+      const amounts = data.map(row => row.Amount);
 
-  // --- 2. Render the cost list ---
-  renderCostList(data);
+      const randomColors = labels.map(() => getRandomColor());
 
-  // --- 3. Update financial summary ---
-  await updateFinancialSummary(data);
+      const ctx = chartCanvas.getContext('2d');
+
+      const isDark = currentTheme === 'dark';
+      const textColor = isDark ? '#FFFFFF' : '#333333';
+      const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+      const isMobileDevice = window.deviceInfo && window.deviceInfo.isMobile;
+
+      const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: !isMobileDevice,
+        plugins: {
+          legend: {
+            display: currentChartType === 'pie',
+            position: 'bottom',
+            labels: {
+              color: textColor,
+              padding: isMobileDevice ? 10 : 15,
+              font: {
+                size: isMobileDevice ? 10 : 12
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+            titleColor: textColor,
+            bodyColor: textColor,
+            borderColor: gridColor,
+            borderWidth: 1,
+            titleFont: {
+              size: isMobileDevice ? 12 : 14
+            },
+            bodyFont: {
+              size: isMobileDevice ? 11 : 13
+            }
+          }
+        }
+      };
+
+      let chartOptions = { ...commonOptions };
+
+      if (currentChartType === 'bar' || currentChartType === 'line') {
+        chartOptions.scales = {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: textColor,
+              font: {
+                size: isMobileDevice ? 10 : 12
+              }
+            },
+            grid: {
+              color: gridColor
+            }
+          },
+          x: {
+            ticks: {
+              color: textColor,
+              font: {
+                size: isMobileDevice ? 10 : 12
+              }
+            },
+            grid: {
+              color: gridColor
+            }
+          }
+        };
+      }
+
+      let datasetConfig = {
+        label: getTranslation('cost'),
+        data: amounts,
+        backgroundColor: randomColors
+      };
+
+      if (currentChartType === 'line') {
+        const primaryLineColor = isDark ? '#4a90e2' : '#357abd';
+
+        datasetConfig.borderColor = primaryLineColor;
+        datasetConfig.borderWidth = 3;
+        datasetConfig.fill = false;
+        datasetConfig.tension = 0.4;
+        datasetConfig.pointBackgroundColor = randomColors;
+        datasetConfig.pointBorderColor = primaryLineColor;
+        datasetConfig.pointBorderWidth = 2;
+        datasetConfig.pointRadius = 5;
+        datasetConfig.pointHoverRadius = 7;
+      }
+
+      myChart = new Chart(ctx, {
+        type: currentChartType,
+        data: {
+          labels: labels,
+          datasets: [datasetConfig]
+        },
+        options: chartOptions
+      });
+
+      renderCostList(data);
+
+      await updateFinancialSummary(data);
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+      if (!hasDashboardLoadErrorAlerted) {
+        alert(getTranslation('networkError'));
+        hasDashboardLoadErrorAlerted = true;
+        setTimeout(() => {
+          hasDashboardLoadErrorAlerted = false;
+        }, 5000);
+      }
+    } finally {
+      dashboardLoadPromise = null;
+    }
+  })();
+
+  return dashboardLoadPromise;
 }
 
 // NEW FUNCTION: Renders the list with delete and edit buttons
@@ -724,7 +748,7 @@ function setupFormListener() {
     if (result.success) {
       categoryInput.value = '';
       amountInput.value = '';
-      setupDashboard(); // Reload everything
+      setupDashboard(true); // Reload everything
     } else {
       alert(getTranslation('errorSavingData') + ': ' + result.message);
     }
@@ -853,7 +877,7 @@ function setupDeleteListener() {
         const result = await response.json();
         
         if (result.success) {
-          setupDashboard(); // Reload everything (this will also update financial summary)
+          setupDashboard(true); // Reload everything (this will also update financial summary)
         } else {
           alert(getTranslation('errorDeletingData') + ': ' + result.message);
         }
@@ -947,7 +971,7 @@ function setupDeleteListener() {
         
         if (result.success) {
           // Reload dashboard to show updated data
-          setupDashboard();
+          setupDashboard(true);
         } else {
           alert(getTranslation('errorUpdatingData') + ': ' + result.message);
           target.disabled = false;
@@ -998,7 +1022,7 @@ function setupChartTypeSelector() {
     chartTypeSelect.addEventListener('change', (event) => {
       currentChartType = event.target.value;
       localStorage.setItem('chartType', currentChartType);
-      setupDashboard(); // Recreate the chart with new type
+      setupDashboard(true); // Recreate the chart with new type
     });
   }
 }
